@@ -15,19 +15,43 @@ public class PluginCodelabPlugin implements FlutterPlugin, MethodCallHandler {
   ///
   /// This local reference serves to register the plugin with the Flutter Engine
   /// and unregister it
-  /// when the Flutter Engine is detached from the   Activity.
+  /// when the Flutter Engine is detached from the Activity.
   private MethodChannel channel;
+  private Synth synth;
+  private static final String channelName = "plugin_codelab";
+
+  private static void setup(PluginCodelabPlugin plugin, BinaryMessenger binaryMessenger) {
+    plugin.channel = new MethodChannel(binaryMessenger, channelName);
+    plugin.channel.setMethodCallHandler(plugin);
+    plugin.synth = new Synth();
+    plugin.synth.start();
+  }
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-    channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "plugin_codelab");
-    channel.setMethodCallHandler(this);
+    setup(this, flutterPluginBinding.getBinaryMessenger());
   }
 
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
     if (call.method.equals("getPlatformVersion")) {
       result.success("Android " + android.os.Build.VERSION.RELEASE);
+    } else if (call.method.equals("onKeyDown")) {
+      try {
+        ArrayList arguments = (ArrayList) call.arguments;
+        int numKeysDown = synth.keyDown((Integer) arguments.get(0));
+        result.success(numKeysDown);
+      } catch (Exception ex) {
+        result.error("1", ex.getMessage(), ex.getStackTrace());
+      }
+    } else if (call.method.equals("onKeyUp")) {
+      try {
+        ArrayList arguments = (ArrayList) call.arguments;
+        int numKeysDown = synth.keyUp((Integer) arguments.get(0));
+        result.success(numKeysDown);
+      } catch (Exception ex) {
+        result.error("1", ex.getMessage(), ex.getStackTrace());
+      }
     } else {
       result.notImplemented();
     }
